@@ -9,7 +9,8 @@ from .verison import __version__
 
 app = FastAPI()
 
-origins = ["*"]
+origins = ["http://activation.zone", "http://www.activation.zone",
+"https://activation.zone", "https://www.activation.zone", "http://localhost:8082", "https://localhost:8082"]
 
 app.add_middleware(
     CORSMiddleware,
