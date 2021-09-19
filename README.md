@@ -21,3 +21,7 @@ Test using `httpie`:
 (venv)> http POST http://localhost:8000 < sample.json
 // Get a 500 error because the app isn't finished :(
 ```
+
+### Credits
+
+API back end by @thedeltaflyer; Activation zone generation by @arkorobotics;
