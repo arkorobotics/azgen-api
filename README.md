@@ -22,6 +22,18 @@ Test using `httpie`:
 // Get a 500 error because the app isn't finished :(
 ```
 
+## Docker
+
+Command to build image:
+```
+docker build -t azgen-api:latest .
+```
+
+Command to run image:
+```
+docker run -it --rm -p 8082:8082 azgen-api:latest
+```
+
 ### Credits
 
 API back end by @thedeltaflyer; Activation zone generation by @arkorobotics;

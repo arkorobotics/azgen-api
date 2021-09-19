@@ -1,5 +1,6 @@
 import tempfile
 from os import path
+from typing import Tuple
 
 import elevation
 from osgeo import gdal
@@ -10,7 +11,7 @@ import numpy as np
 from .models import AZRequest
 
 
-def get_bounds(request: AZRequest) -> tuple[float, float, float, float]:
+def get_bounds(request: AZRequest) -> Tuple[float, float, float, float]:
     # Generate the extent
     summit_lat_min = float('{:.8f}'.format(request.summit_lat - request.deg_delta))
     summit_lat_max = float('{:.8f}'.format(request.summit_lat + request.deg_delta))
@@ -25,7 +26,7 @@ def get_cutoff_alt(request: AZRequest) -> float:
 
 
 # clip -o data/{summit_ref}-30m-DEM.tif --bounds {summit_long_min} {summit_lat_min} {summit_long_max} {summit_lat_max}
-def get_az(request: AZRequest, bounds: tuple[float, float, float, float]) -> np.ndarray:
+def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.ndarray:
 
     # Generate the extent
     summit_lat_min = float('{:.8f}'.format(request.summit_lat - request.deg_delta))
