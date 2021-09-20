@@ -8,6 +8,9 @@ from osgeo import ogr
 from osgeo import osr
 import numpy as np
 
+from descartes import PolygonPatch
+import alphashape
+
 from .models import AZRequest
 
 
@@ -144,25 +147,18 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
         srs.ImportFromEPSG(4326)
 
         # Collect all Geometry
-        geomcol = ogr.Geometry(ogr.wkbGeometryCollection)
+        geomcol = []
 
         # Add all lat/long points to generate a AZ polygon using convexhull
         for x in range(num_x):
             for y in range(num_y):
                 if az[x,y] == 1:
 
-                    # initialise point with coordinates
-                    # create point
-                    p = ogr.Geometry(ogr.wkbPoint)
-                    # initialise point with coordinates
-                    p.AddPoint(float(long[x,y]), float(lat[x,y]))
-                    geomcol.AddGeometry(p)
+                    # Add each AZ point
+                    geomcol.append( (float(long[x,y]), float(lat[x,y])) )
         
-        # AZ Polygon Geometry
-        azgeo = ogr.Geometry(ogr.wkbGeometryCollection)
-
-        # Calculate convex hull
-        azgeo = geomcol.ConvexHull()
+        # AZ Polygon Geometry using Concave Hull
+        azgeo = alphashape.alphashape(geomcol, 4000.0)
         
         # Return AZ polygon
         return azgeo

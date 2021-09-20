@@ -10,7 +10,9 @@ from .verison import __version__
 app = FastAPI()
 
 origins = ["http://activation.zone", "http://www.activation.zone",
-"https://activation.zone", "https://www.activation.zone", "http://localhost:8082", "https://localhost:8082"]
+"https://activation.zone", "https://www.activation.zone", 
+"http://localhost:8082", "https://localhost:8082",  
+"http://localhost:8080", "https://localhost:8080"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,7 +39,7 @@ def azgen(item: AZRequest, response: Response):
 
     # Convert to string and remove altitude (0m)
     az_geo_string = str(az_geo)
-    az_geo_string = az_geo_string.replace(" 0", "")
+    # az_geo_string = az_geo_string.replace(" 0", "")   # Legacy function call. May need it later.
 
     print("Polygon String: ", az_geo_string)
     
