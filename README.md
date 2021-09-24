@@ -19,7 +19,6 @@ Test using `httpie`:
 (venv)> http http://localhost:8000
 // Get a string return :)
 (venv)> http POST http://localhost:8000 < sample.json
-// Get a 500 error because the app isn't finished :(
 ```
 
 ## Docker

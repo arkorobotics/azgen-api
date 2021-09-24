@@ -68,6 +68,12 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
 
         az_mask = np.zeros((num_x, num_y))
 
+        # If the requested summit altitude is too high, use the DEM altitude as the summit altitude
+        if ( request.summit_alt - dem[center_x,center_y] > request.sota_summit_alt_thres - 1 ):
+            print("REQUEST ALT: ", request.summit_alt)
+            print("DEM ALT: ", dem[center_x,center_y])
+            summit_alt_az_min = dem[center_x,center_y] - request.sota_summit_alt_thres
+
         for x in range(num_x):
             for y in range(num_y):
                 if dem[x,y] >= summit_alt_az_min:
@@ -83,7 +89,7 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
         # Start at the summit (center) and expand outward until outside the AZ
         #    0 = Unassigned or outside of AZ
         #    1 = Within AZ
-        #    2 = Marked for searching outward
+        #    2 = Marked for searching
         while 2 in az_mask_s:
             for x in range(num_x):
                 for y in range(num_y):
@@ -119,9 +125,9 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
         # The following is meant for future use. Copying az_mask_s directly to az works just as well.
         for x in range(num_x):
             for y in range(num_y):
-                if az_mask_s[x,y] == 1 and az_mask[x,y] == 1:
+                if az_mask_s[x,y] == 1:
                     az[x,y] = 1
-        
+
         # Generate Latitude and Longitude array (shares indices with az)
         # Calculate lat/long step per index
         az_lat_step = (summit_lat_max-summit_lat_min)/num_y
