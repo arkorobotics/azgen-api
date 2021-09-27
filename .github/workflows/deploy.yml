@@ -1,0 +1,17 @@
+on:
+  # Trigger the workflow on push,
+  # but only for the main branch
+  push:
+    branches:
+      - main
+name: 🚀 Deploy to Prod!
+jobs:
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔨 Build Docker App
+        uses: distributhor/workflow-webhook@v2
+        env:
+          webhook_url: "https://web2py.lalwut.com/githooks/app/azgen_api"
+          data: '{ "TOKEN": "${{ secrets.DEPLOY_TOKEN }}" }'
