@@ -11,7 +11,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🔨 Build Docker App
-        uses: distributhor/workflow-webhook@v2
-        env:
-          webhook_url: "https://web2py.lalwut.com/githooks/app/azgen_api"
-          data: '{ "TOKEN": "${{ secrets.DEPLOY_TOKEN }}" }'
+        run: |
+          curl -f -X POST https://web2py.lalwut.com/githooks/app/azgen_api -H 'Content-Type: application/json' -d '{"TOKEN":"${{ secrets.DEPLOY_TOKEN }}"}'
