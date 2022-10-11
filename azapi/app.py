@@ -1,11 +1,14 @@
 from fastapi import FastAPI, Response, status
-
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from .models import AZRequest, AZResponse
-from .azgen import get_bounds, get_cutoff_alt, get_az
+from .models import AZRequest, AZResponse, AZGPXRequest, AZGPXResponse
+from .azgen import get_bounds, get_cutoff_alt, get_az, get_gpx
 from .verison import __version__
 
+import tempfile
+from os import path
+import os
 
 app = FastAPI()
 
@@ -44,3 +47,34 @@ def azgen(item: AZRequest, response: Response):
     print("Polygon String: ", az_geo_string)
     
     return { "az": az_geo_string }
+
+@app.post("/gpx", status_code=status.HTTP_200_OK)
+def downloadGPX(item: AZGPXRequest, response: Response):
+
+    print("Go go gadget GPX!")
+    bounds = get_bounds(item)
+    cutoff_alt = get_cutoff_alt(item)
+    az_geo = get_gpx(item, bounds)
+
+    print(f'Bounds: {bounds}')
+    print(f'Cutoff Alt: {cutoff_alt}')
+    print(f'AZ GPX Data: {az_geo}')
+
+    print('v002')
+
+    output_file = ''
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+
+        with open(tmpdirname + item.summit_ref + '.gpx', 'w') as fp:
+            
+            fp.write(az_geo)
+
+            return {'az_gpx': az_geo}
+
+    # Convert to string and remove altitude (0m)
+    # az_geo_string = str(az_geo)
+
+#    print("Polygon String: ", az_geo_string)
+    
+#    return {'az_gpx': az_geo}
