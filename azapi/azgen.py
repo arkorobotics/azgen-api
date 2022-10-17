@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# (c) 2022 Activation.zone
+# File: azapi/azgen.py
+
 import tempfile
 from os import path
 from typing import Tuple
@@ -7,8 +12,6 @@ from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
 import numpy as np
-
-from descartes import PolygonPatch
 import alphashape
 
 from .models import AZRequest
@@ -26,7 +29,6 @@ def get_bounds(request: AZRequest) -> Tuple[float, float, float, float]:
 
 def get_cutoff_alt(request: AZRequest) -> float:
     return request.summit_alt - request.sota_summit_alt_thres
-
 
 # clip -o data/{summit_ref}-30m-DEM.tif --bounds {summit_long_min} {summit_lat_min} {summit_long_max} {summit_lat_max}
 def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.ndarray:
@@ -158,13 +160,53 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
         # Add all lat/long points to generate a AZ polygon using convexhull
         for x in range(num_x):
             for y in range(num_y):
-                if az[x,y] == 1:
-
+                if az[x, y] == 1:
                     # Add each AZ point
-                    geomcol.append( (float(long[x,y]), float(lat[x,y])) )
-        
+                    geomcol.append((float(long[x, y]), float(lat[x, y])))
+
         # AZ Polygon Geometry using Concave Hull
         azgeo = alphashape.alphashape(geomcol, 4000.0)
-        
+
         # Return AZ polygon
         return azgeo
+
+
+def get_gpx(request: AZRequest, bounds: Tuple[float, float, float, float], tmpdir: str) -> str:
+
+    azgeo = get_az(request, bounds)
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(4326)
+
+    driver = ogr.GetDriverByName("GPX")
+
+    # Remove output shapefile if it already exists
+    if path.exists(tmpdir + request.summit_ref + '.gpx'):
+        driver.DeleteDataSource(tmpdir + request.summit_ref + '.gpx')
+
+    out = driver.CreateDataSource(tmpdir + request.summit_ref + '.gpx')
+
+    # layer creation: if you use 'track_points', points are accepted
+    oL = out.CreateLayer("track_points", srs, ogr.wkbPoint)
+
+    olat, olong = azgeo.exterior.coords.xy
+
+    # Add all lat/long points of AZ
+    for x, y in zip(olat, olong):
+        # create point
+        p = ogr.Geometry(ogr.wkbPoint)
+        # initialise point with coordinates
+        p.AddPoint(x, y)
+
+        # prepare new "feature" using the layer's "feature definition",
+        # initialize it by setting geometry and necessary field values
+        featureDefn = oL.GetLayerDefn()
+        oF = ogr.Feature(featureDefn)
+        oF.SetGeometry(p)
+        oF.SetField("track_fid", "1")
+        oF.SetField("track_seg_id", "1")
+
+        # adapt this according to the timestamp format of your data source
+        oL.CreateFeature(oF)
+
+    return tmpdir + request.summit_ref + '.gpx'

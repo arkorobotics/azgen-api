@@ -1,46 +1,11 @@
-from fastapi import FastAPI, Response, status
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# (c) 2022 Activation.zone
+# File: azapi/app.py
 
-from fastapi.middleware.cors import CORSMiddleware
+from .env import read_env
+from . import app_factory
 
-from .models import AZRequest, AZResponse
-from .azgen import get_bounds, get_cutoff_alt, get_az
-from .verison import __version__
-
-
-app = FastAPI()
-
-origins = ["http://activation.zone", "http://www.activation.zone",
-"https://activation.zone", "https://www.activation.zone", 
-"http://localhost:8082", "https://localhost:8082",  
-"http://localhost:8080", "https://localhost:8080"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-def home():
-    return f'AZAPI v{__version__}'
-
-
-@app.post("/", status_code=status.HTTP_200_OK, response_model=AZResponse)
-def azgen(item: AZRequest, response: Response):
-    bounds = get_bounds(item)
-    cutoff_alt = get_cutoff_alt(item)
-    az_geo = get_az(item, bounds)
-
-    print(f'Bounds: {bounds}')
-    print(f'Cutoff Alt: {cutoff_alt}')
-    print(f'AZ Data: {az_geo}')
-
-    # Convert to string and remove altitude (0m)
-    az_geo_string = str(az_geo)
-    # az_geo_string = az_geo_string.replace(" 0", "")   # Legacy function call. May need it later.
-
-    print("Polygon String: ", az_geo_string)
-    
-    return { "az": az_geo_string }
+# The application is being loaded as a WSGI application, load env vars and generate the app
+read_env()
+app = app_factory()
