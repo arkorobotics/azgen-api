@@ -11,13 +11,13 @@ WARNING = logging.WARNING
 INFO = logging.INFO
 DEBUG = logging.DEBUG
 
-logger = logging.getLogger('azapi')
+logger = logging.getLogger("azapi")
 
 # Set Defaults
 logger.setLevel(logging.DEBUG)
 _ch = logging.StreamHandler()
 _ch.setLevel(logging.DEBUG)
-_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 _ch.setFormatter(_formatter)
 logger.addHandler(_ch)
 
