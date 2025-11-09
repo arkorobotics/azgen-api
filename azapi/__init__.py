@@ -8,10 +8,10 @@ from fastapi import FastAPI
 from .cors import add_cors_middleware
 from .config import settings
 from .endpoints import router
-from .log import (logger, DEBUG, WARNING)
+from .log import logger, DEBUG, WARNING
 from .version import __version__
 
-__all__ = ['register_endpoints', 'app_factory']
+__all__ = ["register_endpoints", "app_factory"]
 
 
 # Provide a central point for registering API endpoints

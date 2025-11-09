@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling >= 1.27.0", "hatch-requirements-txt >= 0.4.1"]
+build-backend = "hatchling.build"
+
+
+[project]
+name = "azapi"
+authors = [
+    {name = "Ara Kourchians"},
+    {name = "David Khudaverdyan"},
+]
+description = "The Activation.zone API."
+requires-python = ">=3.12"
+keywords = ["azapi", "azgen", "activation", "zone", "sota"]
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE", content-type = "text/plain"}
+classifiers = [
+    "Topic :: Utilities",
+    # "License :: WTFPL", ## WTFPL is not offically supported yet!
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Framework :: FastAPI",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+dynamic = ["version", "dependencies"]
+
+[project.scripts]
+expresso = "azapi.cli:main"
+
+
+[tool.hatch.build.targets.sdist]
+packages = ["azapi"]
+include = [
+  "README.md",
+  "LICENSE",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["azapi"]
+
+[tool.hatch.version]
+path = "azapi/version.py"
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]
+
+
+[tool.pytest.ini_options]
+addopts = "--cov"
+
+
+[tool.coverage.run]
+source = ["azapi"]
+
+[tool.coverage.report]
+show_missing = true
+
+
+[tool.black]
+line-length = 110
+target-version = ['py312']

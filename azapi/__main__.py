@@ -5,5 +5,5 @@
 
 from .cli import main
 
-# The project is being called as a Python module, and should therefore just run
+# The project is being called as a Python module and should therefore just run
 main()

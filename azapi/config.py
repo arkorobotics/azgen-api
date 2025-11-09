@@ -3,7 +3,7 @@
 # (c) 2022 Activation.zone
 # File: azapi/config.py
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
