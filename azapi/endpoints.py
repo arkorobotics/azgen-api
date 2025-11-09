@@ -43,7 +43,7 @@ def azgen(item: AZRequest):
 
 
 # From a valid AZRequest, perform the necessary calculations and provide a gpx file download
-@router.post("/gpx", status_code=status.HTTP_200_OK, response_model=FileResponse)
+@router.post("/gpx", status_code=status.HTTP_200_OK, response_class=FileResponse)
 def download_gpx(item: AZRequest):
     debug("Go go gadget GPX!")
     bounds = get_bounds(item)
