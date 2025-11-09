@@ -8,6 +8,7 @@ from os import path
 from typing import Tuple
 
 import elevation
+import shapely
 from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
@@ -28,18 +29,29 @@ def get_bounds(request: AZRequest) -> Tuple[float, float, float, float]:
     return summit_long_min, summit_lat_min, summit_long_max, summit_lat_max
 
 
+def get_single_polygon(request: AZRequest, azgeo: shapely.Polygon) -> shapely.Polygon:
+    summit_point = Point(float(request.summit_long), float(request.summit_lat))
+    if hasattr(azgeo, "geoms"):  # MultiPolygon
+        containing = None
+        for poly in azgeo.geoms:
+            if poly.covers(summit_point):
+                containing = poly
+                break
+        if containing is None:
+            containing = min(azgeo.geoms, key=lambda p: p.distance(summit_point))
+        return containing
+    return azgeo
+
+
 def get_cutoff_alt(request: AZRequest) -> float:
     return request.summit_alt - request.sota_summit_alt_thres
 
 
 # clip -o data/{summit_ref}-30m-DEM.tif --bounds {summit_long_min} {summit_lat_min} {summit_long_max} {summit_lat_max}
-def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.ndarray:
+def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> shapely.Polygon:
 
     # Generate the extent
-    summit_lat_min = float("{:.8f}".format(request.summit_lat - request.deg_delta))
-    summit_lat_max = float("{:.8f}".format(request.summit_lat + request.deg_delta))
-    summit_long_min = float("{:.8f}".format(request.summit_long - request.deg_delta))
-    summit_long_max = float("{:.8f}".format(request.summit_long + request.deg_delta))
+    summit_long_min, summit_lat_min, summit_long_max, summit_lat_max = bounds
 
     # Set SOTA Altitude AZ (Activation Zone) Cutoff
     summit_alt_az_min = request.summit_alt - request.sota_summit_alt_thres
@@ -55,14 +67,14 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
         # Use gdal to parse the data
         gdal_data = gdal.Open(clip_file)
         gdal_band = gdal_data.GetRasterBand(1)
-        nodataval = gdal_band.GetNoDataValue()
+        nodata_val = gdal_band.GetNoDataValue()
 
         # convert to a numpy array
         dem = gdal_data.ReadAsArray().astype(np.float64)
 
         # replace missing values if necessary
-        if np.any(dem == nodataval):
-            dem[dem == nodataval] = np.nan
+        if np.any(dem == nodata_val):
+            dem[dem == nodata_val] = np.nan
 
         # Calculate Activation Zone Altitude Mask (all data points at or above alt cutoff)
         num_x, num_y = dem.shape
@@ -140,22 +152,13 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
                 lat[x, y] = summit_lat_max - (az_lat_step * x)
                 long[x, y] = summit_long_min + (az_long_step * y)
 
-        geomcol = [
+        geom_col = [
             (float(long[x, y]), float(lat[x, y])) for x in range(num_x) for y in range(num_y) if az[x, y] == 1
         ]
 
-        azgeo = alphashape.alphashape(geomcol, 4000.0)
+        azgeo = alphashape.alphashape(geom_col, 4000.0)
         # If alphashape returns MultiPolygon, select the component that contains the summit
-        summit_point = Point(float(request.summit_long), float(request.summit_lat))
-        if hasattr(azgeo, "geoms"):  # MultiPolygon
-            containing = None
-            for poly in azgeo.geoms:
-                if poly.covers(summit_point):
-                    containing = poly
-                    break
-            if containing is None:
-                containing = min(azgeo.geoms, key=lambda p: p.distance(summit_point))
-            azgeo = containing
+        azgeo = get_single_polygon(request, azgeo)
 
         # Return AZ polygon
         return azgeo
@@ -165,51 +168,38 @@ def get_gpx(request: AZRequest, bounds: Tuple[float, float, float, float], tmpdi
 
     azgeo = get_az(request, bounds)
 
-    # Ensure a single Polygon: choose the polygon that contains the summit,
-    # falling back to the nearest polygon if none contain it.
-    summit_point = Point(float(request.summit_long), float(request.summit_lat))
-    if hasattr(azgeo, "geoms"):  # MultiPolygon
-        containing = None
-        for poly in azgeo.geoms:
-            if poly.covers(summit_point):
-                containing = poly
-                break
-        if containing is None:
-            containing = min(azgeo.geoms, key=lambda p: p.distance(summit_point))
-        azgeo = containing
-
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(4326)
 
     driver = ogr.GetDriverByName("GPX")
 
-    # Remove output shapefile if it already exists
+    # Remove the output shapefile if it already exists
     if path.exists(tmpdir + request.summit_ref + ".gpx"):
         driver.DeleteDataSource(tmpdir + request.summit_ref + ".gpx")
 
     out = driver.CreateDataSource(tmpdir + request.summit_ref + ".gpx")
 
     # layer creation: if you use 'track_points', points are accepted
-    oL = out.CreateLayer("track_points", srs, ogr.wkbPoint)
+    o_l = out.CreateLayer("track_points", srs, ogr.wkbPoint)
 
-    olat, olong = azgeo.exterior.coords.xy
+    o_lat, o_long = azgeo.exterior.coords.xy
 
     # Add all lat/long points of AZ
-    for x, y in zip(olat, olong):
+    for x, y in zip(o_lat, o_long):
         # create point
         p = ogr.Geometry(ogr.wkbPoint)
-        # initialise point with coordinates
+        # initialize point with coordinates
         p.AddPoint(x, y)
 
         # prepare new "feature" using the layer's "feature definition",
         # initialize it by setting geometry and necessary field values
-        featureDefn = oL.GetLayerDefn()
-        oF = ogr.Feature(featureDefn)
-        oF.SetGeometry(p)
-        oF.SetField("track_fid", "1")
-        oF.SetField("track_seg_id", "1")
+        feature_defn = o_l.GetLayerDefn()
+        o_f = ogr.Feature(feature_defn)
+        o_f.SetGeometry(p)
+        o_f.SetField("track_fid", "1")
+        o_f.SetField("track_seg_id", "1")
 
         # adapt this according to the timestamp format of your data source
-        oL.CreateFeature(oF)
+        o_l.CreateFeature(o_f)
 
     return tmpdir + request.summit_ref + ".gpx"

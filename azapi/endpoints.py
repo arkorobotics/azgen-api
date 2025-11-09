@@ -5,7 +5,7 @@
 
 import tempfile
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, status
 from starlette.responses import FileResponse
 
 from .models import AZRequest, AZResponse
@@ -24,7 +24,7 @@ def home():
 
 # From a valid AZRequest, perform the necessary calculations and return the expected polygon
 @router.post("/", status_code=status.HTTP_200_OK, response_model=AZResponse)
-def azgen(item: AZRequest, response: Response):
+def azgen(item: AZRequest):
     bounds = get_bounds(item)
     cutoff_alt = get_cutoff_alt(item)
     az_geo = get_az(item, bounds)
@@ -33,7 +33,7 @@ def azgen(item: AZRequest, response: Response):
     debug(f"Cutoff Alt: {cutoff_alt}")
     debug(f"AZ Data: {az_geo}")
 
-    # Convert to string and remove altitude (0m)
+    # Convert to string and remove altitude (0 m)
     az_geo_string = str(az_geo)
     # az_geo_string = az_geo_string.replace(" 0", "")   # Legacy function call. May need it later.
 
@@ -43,8 +43,8 @@ def azgen(item: AZRequest, response: Response):
 
 
 # From a valid AZRequest, perform the necessary calculations and provide a gpx file download
-@router.post("/gpx", status_code=status.HTTP_200_OK)
-def download_gpx(item: AZRequest, response: FileResponse):
+@router.post("/gpx", status_code=status.HTTP_200_OK, response_model=FileResponse)
+def download_gpx(item: AZRequest):
     debug("Go go gadget GPX!")
     bounds = get_bounds(item)
     cutoff_alt = get_cutoff_alt(item)
