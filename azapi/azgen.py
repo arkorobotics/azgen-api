@@ -13,6 +13,7 @@ from osgeo import ogr
 from osgeo import osr
 import numpy as np
 import alphashape
+from shapely.geometry import Point
 
 from .models import AZRequest
 
@@ -144,6 +145,17 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
         ]
 
         azgeo = alphashape.alphashape(geomcol, 4000.0)
+        # If alphashape returns MultiPolygon, select the component that contains the summit
+        summit_point = Point(float(request.summit_long), float(request.summit_lat))
+        if hasattr(azgeo, "geoms"):  # MultiPolygon
+            containing = None
+            for poly in azgeo.geoms:
+                if poly.covers(summit_point):
+                    containing = poly
+                    break
+            if containing is None:
+                containing = min(azgeo.geoms, key=lambda p: p.distance(summit_point))
+            azgeo = containing
 
         # Return AZ polygon
         return azgeo
@@ -152,6 +164,19 @@ def get_az(request: AZRequest, bounds: Tuple[float, float, float, float]) -> np.
 def get_gpx(request: AZRequest, bounds: Tuple[float, float, float, float], tmpdir: str) -> str:
 
     azgeo = get_az(request, bounds)
+
+    # Ensure a single Polygon: choose the polygon that contains the summit,
+    # falling back to the nearest polygon if none contain it.
+    summit_point = Point(float(request.summit_long), float(request.summit_lat))
+    if hasattr(azgeo, "geoms"):  # MultiPolygon
+        containing = None
+        for poly in azgeo.geoms:
+            if poly.covers(summit_point):
+                containing = poly
+                break
+        if containing is None:
+            containing = min(azgeo.geoms, key=lambda p: p.distance(summit_point))
+        azgeo = containing
 
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(4326)

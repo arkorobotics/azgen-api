@@ -1,5 +1,5 @@
 # Start with the base GDAL image
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.11.4
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.11.5
 
 # Set the working directory
 WORKDIR /app
